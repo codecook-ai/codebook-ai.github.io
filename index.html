@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeCookbook-AI Recipe Search Engine</title>
+    
+    <style>
+        /* Import Inter Font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        
+        /* Base Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            color: #1f2937;
+            padding: 1rem;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Main Container */
+        .container-main {
+            width: 100%;
+            max-width: 900px;
+            background-color: white;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+        
+        /* Responsive Adjustments */
+        @media (min-width: 768px) {
+            body { padding: 2rem; }
+            .container-main { padding: 2.5rem; }
+            .grid-container {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .lg-col-span-1 { grid-column: span 1 / span 1; }
+            .lg-col-span-2 { grid-column: span 2 / span 2; }
+        }
+        @media (min-width: 1024px) {
+            .grid-container {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+        
+        /* Header Style */
+        .header-h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #ef4444; /* Red color for emphasis */
+            margin-bottom: 0.5rem;
+        }
+        @media (max-width: 767px) {
+             .header-h1 { font-size: 1.875rem; }
+        }
+        
+        /* Form Element Styles */
+        .input-style {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            transition: border-color 150ms, box-shadow 150ms;
+        }
+        .input-style:focus {
+            outline: none;
+            border-color: #f97316; /* Focus orange color */
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.5);
+        }
+
+        /* Button Style */
+        .button-style {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: #f97316; /* Orange button */
+            color: white;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            transition: background-color 300ms, transform 300ms;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+        }
+        .button-style:hover {
+            background-color: #ea580c;
+            transform: scale(1.01);
+        }
+        .button-style:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            animation: spin 1s linear infinite;
+            margin-right: 0.75rem;
+            height: 1.25rem;
+            width: 1.25rem;
+            color: white;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .hidden { display: none; }
+
+        /* Output Area Style */
+        #recipe-output {
+            background-color: #f9fafb;
+            padding: 1.25rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            height: 24rem;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        /* Scrollbar Style */
+        #recipe-output::-webkit-scrollbar { width: 8px; }
+        #recipe-output::-webkit-scrollbar-thumb { background-color: #9ca3af; border-radius: 10px; }
+        #recipe-output::-webkit-scrollbar-track { background: #e5e7eb; }
+        
+        /* General Spacing */
+        .mt-10 { margin-top: 2.5rem; }
+        .pt-6 { padding-top: 1.5rem; }
+        .border-t { border-top: 1px solid #e5e7eb; }
+
+        /* Recipe Content Formatting */
+        .recipe-content h2 { font-size: 1.5rem; font-weight: 700; color: #f97316; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .recipe-content h3 { font-size: 1.125rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.25rem; }
+        .recipe-content ul { list-style-type: disc; margin-left: 1.5rem; padding-left: 0.5rem; }
+        .recipe-content ol { list-style-type: decimal; margin-left: 1.5rem; padding-left: 0.5rem; }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex items-center justify-center">
+
+    <div class="container-main">
+
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="header-h1">
+                🥘 CodeCookbook-AI Recipe Search Engine
+            </h1>
+            <p style="color: #6b7280;">
+                Search for recipes using a free public API. Filter by ingredients, country, and goal.
+            </p>
+            <div id="api-status" class="mt-2 text-sm font-medium p-2 rounded-lg" style="color:#10b981; border: 1px solid #6ee7b7; background-color: #ecfdf5;">
+                ✨ **Currently using TheMealDB Public API** for real-time search.
+            </div>
+        </header>
+
+        <!-- Input Section -->
+        <div class="grid-container mb-8">
+            <!-- 1. Country/Cuisine Selection -->
+            <div class="lg-col-span-1">
+                <label for="cuisine" class="block text-sm font-bold" style="color: #374151; margin-bottom: 0.5rem;">
+                    Country / Cuisine (Area Filter)
+                </label>
+                <!-- TheMealDB uses 'Area' for filtering -->
+                <select id="cuisine" class="input-style">
+                    <option value="" selected>Any Area</option>
+                    <option value="American">American</option>
+                    <option value="British">British</option>
+                    <option value="Canadian">Canadian</option>
+                    <option value="Chinese">Chinese</option>
+                    <option value="Croatian">Croatian</option>
+                    <option value="Dutch">Dutch</option>
+                    <option value="Egyptian">Egyptian</option>
+                    <option value="French">French</option>
+                    <option value="Greek">Greek</option>
+                    <option value="Indian">Indian</option>
+                    <option value="Irish">Irish</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Jamaican">Jamaican</option>
+                    <option value="Japanese">Japanese</option>
+                    <option value="Malaysian">Malaysian</option>
+                    <option value="Mexican">Mexican</option>
+                    <option value="Moroccan">Moroccan</option>
+                    <option value="Polish">Polish</option>
+                    <option value="Portuguese">Portuguese</option>
+                    <option value="Russian">Russian</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="Thai">Thai</option>
+                    <option value="Tunisian">Tunisian</option>
+                    <option value="Turkish">Turkish</option>
+                    <option value="Vietnamese">Vietnamese</option>
+                </select>
+            </div>
+
+            <!-- 2. Dish Goal/Hint -->
+            <div class="lg-col-span-2">
+                <label for="dish-goal" class="block text-sm font-bold" style="color: #374151; margin-bottom: 0.5rem;">
+                    Dish Goal / Hint
+                </label>
+                <input type="text" id="dish-goal" placeholder="e.g., Hearty Main Course or Quick Dessert" value="Simple dinner dish"
+                       class="input-style">
+            </div>
+        </div>
+
+        <!-- 3. Ingredients Input -->
+        <div class="mb-6">
+            <label for="ingredients" class="block text-sm font-bold" style="color: #374151; margin-bottom: 0.5rem;">
+                Key Ingredients (Separate multiple ingredients with commas)
+            </label>
+            <textarea id="ingredients" rows="4" placeholder="e.g.: chicken, rice, mushroom, cream, basil, soy sauce"
+                      class="input-style"
+            >chicken, rice</textarea>
+        </div>
+
+        <!-- Search Button -->
+        <button id="generate-button" class="button-style">
+            <svg id="loader" class="spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="button-text">Search Recipes</span>
+        </button>
+
+        <!-- Output Section -->
+        <div class="mt-10 border-t pt-6">
+            <h2 class="text-2xl font-bold" style="color: #1f2937; margin-bottom: 1rem;">🔍 Search Result</h2>
+
+            <div id="recipe-output">
+                Enter ingredients above and click the "Search Recipes" button.
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // ===============================================================
+        // TheMealDB API Search Logic
+        // ===============================================================
+
+        const MEALDB_BASE_URL = "https://www.themealdb.com/api/json/v1/1/"; // TheMealDB Public API
+
+        const outputDiv = document.getElementById('recipe-output');
+        const button = document.getElementById('generate-button');
+        const loader = document.getElementById('loader');
+        const buttonText = document.getElementById('button-text');
+        
+        // Helper function: Set loading state
+        function setLoading(isLoading) {
+            button.disabled = isLoading;
+            loader.classList.toggle('hidden', !isLoading);
+            buttonText.textContent = isLoading ? 
+                'Searching... / Searching...' : 
+                'Search Recipes';
+        }
+
+        // Helper function: Format API error
+        function displayError(message) {
+            outputDiv.innerHTML = `
+                <div style="padding: 1rem; background-color: #fef2f2; color: #b91c1c; font-weight: 600; border-radius: 0.5rem;">
+                    ⚠️ Error: ${message}
+                </div>
+            `;
+        }
+
+        // Core search and display logic
+        async function searchAndDisplayRecipe() {
+            setLoading(true);
+            outputDiv.innerHTML = '<div class="text-center" style="color:#6b7280;">Searching for recipes... Please wait 🍽️</div>';
+            
+            // Get user input
+            const cuisine = document.getElementById('cuisine').value; // Country/Area
+            const rawIngredients = document.getElementById('ingredients').value;
+
+            if (!rawIngredients.trim()) {
+                displayError("Please enter your ingredients! (Ingredients field is empty)");
+                setLoading(false);
+                return;
+            }
+
+            // Format ingredients: replace Chinese commas with English, remove spaces for API
+            const ingredients = rawIngredients.replace(/，/g, ',').trim().split(',').map(i => i.trim()).join(',');
+
+            let mealId = null;
+
+            try {
+                // 1. Filter recipes by the first ingredient in the list (TheMealDB limitation)
+                const firstIngredient = rawIngredients.split(',')[0].trim();
+                let filterUrl = `${MEALDB_BASE_URL}filter.php?i=${firstIngredient}`;
+                
+                const filterResponse = await fetch(filterUrl);
+                const filterData = await filterResponse.json();
+
+                let potentialMeals = filterData.meals;
+
+                // If initial ingredient search fails, or if an area is selected, perform a fallback search by Area
+                if (!potentialMeals && cuisine) {
+                    let cuisineFilterUrl = `${MEALDB_BASE_URL}filter.php?a=${cuisine}`;
+                    const cuisineResponse = await fetch(cuisineFilterUrl);
+                    const cuisineData = await cuisineResponse.json();
+                    potentialMeals = cuisineData.meals;
+                }
+                
+                if (potentialMeals && potentialMeals.length > 0) {
+                    // Simple logic: If an area is selected, try to find a match in that area first
+                    if (cuisine) {
+                        const areaMatch = potentialMeals.find(meal => meal.strArea === cuisine);
+                        if (areaMatch) {
+                            mealId = areaMatch.idMeal;
+                        }
+                    }
+                    
+                    // If no specific area match, or no area was selected, take the first meal found
+                    if (!mealId) {
+                         mealId = potentialMeals[0].idMeal;
+                    }
+
+                }
+                
+                if (!mealId) {
+                    outputDiv.innerHTML = `<div class="text-center" style="color:#f97316;">Sorry, no recipe containing **${rawIngredients}** was found. Please try fewer ingredients or different combinations.</div>`;
+                    setLoading(false);
+                    return;
+                }
+
+                // 2. Lookup full recipe details by ID
+                const lookupUrl = `${MEALDB_BASE_URL}lookup.php?i=${mealId}`;
+                const lookupResponse = await fetch(lookupUrl);
+                const lookupData = await lookupResponse.json();
+                
+                if (lookupData.meals && lookupData.meals.length > 0) {
+                    const meal = lookupData.meals[0];
+                    displayRecipe(meal, rawIngredients);
+                } else {
+                    displayError(`Failed to retrieve recipe details for ID: ${mealId}.`);
+                }
+
+            } catch (error) {
+                console.error("Search Failed:", error);
+                displayError(`Network connection or API access failed: ${error.message}. Please check your network.`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Format and display recipe details
+        function displayRecipe(meal, searchIngredients) {
+            let ingredientsList = '';
+            for (let i = 1; i <= 20; i++) {
+                const ingredient = meal[`strIngredient${i}`];
+                const measure = meal[`strMeasure${i}`];
+                if (ingredient && ingredient.trim()) {
+                    // Highlight ingredients provided by the user
+                    const isSearched = searchIngredients.split(',').some(si => ingredient.toLowerCase().includes(si.trim().toLowerCase()));
+                    const style = isSearched ? 'font-weight: bold; color: #059669;' : ''; // Highlight in green
+                    ingredientsList += `<li style="${style}">${measure} - ${ingredient}</li>`;
+                }
+            }
+            
+            // Format instructions
+            const instructions = meal.strInstructions.split('\r\n').filter(p => p.trim() !== '').map((p, index) => {
+                // Simple numbered list formatting
+                return `${index + 1}. ${p.trim()}`;
+            }).join('\n');
+
+            const recipeHtml = `
+                <div class="recipe-content">
+                    <h2>${meal.strMeal}</h2>
+                    <p style="color: #4b5563;">
+                        **Country/Area:** ${meal.strArea || 'N/A'} | 
+                        **Category:** ${meal.strCategory || 'N/A'}
+                    </p>
+                    ${meal.strMealThumb ? `<img src="${meal.strMealThumb}" alt="${meal.strMeal} Image" style="max-width: 100%; height: auto; border-radius: 0.5rem; margin-top: 1rem; object-fit: cover;">` : ''}
+
+                    <p style="margin-top: 0.5rem;">
+                        <a href="${meal.strYoutube}" target="_blank" style="color: #dc2626; text-decoration: underline;">
+                            Watch Recipe Video on YouTube
+                        </a>
+                    </p>
+
+                    <h3 style="color: #f97316;">Ingredients</h3>
+                    <ul style="list-style-type: none; margin-left: 0; padding-left: 0;">${ingredientsList}</ul>
+
+                    <h3 style="color: #f97316;">Instructions</h3>
+                    <pre style="white-space: pre-wrap; margin: 0; padding: 0;">${instructions}</pre>
+                    
+                    ${meal.strSource ? `<p style="margin-top: 1.5rem; font-size: 0.75rem; color: #6b7280;">Source: <a href="${meal.strSource}" target="_blank" style="color: #3b82f6;">${meal.strSource}</a></p>` : ''}
+                </div>
+            `;
+            
+            outputDiv.innerHTML = recipeHtml;
+        }
+
+        // Bind event listener
+        document.addEventListener('DOMContentLoaded', () => {
+            button.addEventListener('click', searchAndDisplayRecipe);
+        });
+
+    </script>
+
+</body>
+</html>
